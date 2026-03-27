@@ -35,3 +35,4 @@ jobs:
           ENABLE_CROWDWORKS: "true"
           ENABLE_LANCERS: "true"
         run: npm run notify
+
