@@ -1,0 +1,30 @@
+{
+  "name": "job-digest-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "tsx src/main.ts fetch",
+    "digest": "tsx src/main.ts digest",
+    "notify": "tsx src/main.ts notify",
+    "check": "tsc --noEmit",
+    "memory": "tsx src/letta/cli.ts",
+    "memory:read": "tsx src/letta/cli.ts read-all",
+    "memory:get": "tsx src/letta/cli.ts get",
+    "memory:set": "tsx src/letta/cli.ts set",
+    "memory:search": "tsx src/letta/cli.ts search",
+    "memory:insert": "tsx src/letta/cli.ts insert",
+    "mcp": "tsx src/letta/mcp-server.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

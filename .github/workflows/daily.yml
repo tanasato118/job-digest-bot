@@ -1,0 +1,37 @@
+name: Daily Job Digest
+
+on:
+  workflow_dispatch:
+  schedule:
+    # JST 8:00 (UTC 23:00 前日) と JST 18:00 (UTC 9:00)
+    - cron: "0 23 * * *"
+    - cron: "0 9 * * *"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run notifier
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          MIN_BUDGET_JPY: ${{ vars.MIN_BUDGET_JPY || '5000' }}
+          KEYWORDS: ${{ vars.KEYWORDS || 'Dify,ChatGPT,AI チャットボット,Python 自動化,TradingView インジケーター,業務効率化 AI,RAG,AI エージェント,bot 開発,WordPress AI' }}
+          MATCH_KEYWORDS: ${{ vars.MATCH_KEYWORDS || 'Dify,ChatGPT,Python,自動化,TradingView,インジケーター,業務効率化,RAG,AIエージェント,bot,WordPress,チャットボット,MT4,MT5,PineScript,スクレイピング,API開発,プログラミング,AI活用,AI導入,AI開発,生成AI,機械学習' }}
+          SKILLS: ${{ vars.SKILLS || 'Dify,Python,ChatGPT,TradingView,PineScript,MT4,MT5,WordPress,RAG,AI,自動化,bot' }}
+          PREFER_BEGINNER_FRIENDLY: "true"
+          TOP_N: "15"
+          ENABLE_CROWDWORKS: "true"
+          ENABLE_LANCERS: "true"
+        run: npm run notify
