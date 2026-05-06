@@ -1,4 +1,4 @@
-export type JobSource = "crowdworks" | "lancers";
+export type JobSource = "crowdworks" | "lancers" | "coconala";
 
 export interface NormalizedJob {
   source: JobSource;

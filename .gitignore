@@ -3,3 +3,9 @@ dist
 .env
 jobs-output
 .ai-handoff.md
+logs/
+.cursor/
+.claude/
+*.log
+.DS_Store
+Thumbs.db

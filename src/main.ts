@@ -7,6 +7,7 @@ import { postToDiscord } from "./notify/discord.js";
 import { fetchCrowdworksJobs } from "./sources/crowdworks.js";
 import { dedupeJobs } from "./sources/common.js";
 import { fetchLancersJobs } from "./sources/lancers.js";
+import { fetchCoconalaJobs } from "./sources/coconala.js";
 import { formatDiscordSummary } from "./summary/format.js";
 
 async function collectJobs() {
@@ -18,6 +19,9 @@ async function collectJobs() {
   }
   if (config.enableLancers) {
     fetchers.push(fetchLancersJobs(config));
+  }
+  if (config.enableCoconala) {
+    fetchers.push(fetchCoconalaJobs(config));
   }
 
   const results = await Promise.all(fetchers);

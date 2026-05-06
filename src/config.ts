@@ -2,15 +2,15 @@ import { z } from "zod";
 import type { ScoringRuleKey, ScoringWeights } from "./types.js";
 
 const DEFAULT_SCORING_WEIGHTS: ScoringWeights = {
-  keyword: 60,
-  budget: 20,
-  beginnerFriendly: 25,
-  lowCompetition: 15,
+  keyword: 50,
+  budget: 15,
+  beginnerFriendly: 30,
+  lowCompetition: 25,
   clientRating: 15,
   clientJobCount: 10,
   deadlineMargin: 10,
-  recency: 10,
-  skillMatch: 20,
+  recency: 15,
+  skillMatch: 25,
 };
 
 const VALID_RULE_KEYS = new Set<string>([
@@ -39,8 +39,8 @@ function parseScoringWeights(raw: string | undefined): ScoringWeights {
 
 const schema = z.object({
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
-  MIN_BUDGET_JPY: z.coerce.number().default(5000),
-  KEYWORDS: z.string().default("Dify,ChatGPT,Python 自動化,TradingView,AI チャットボット,業務効率化"),
+  MIN_BUDGET_JPY: z.coerce.number().default(3000),
+  KEYWORDS: z.string().default("Dify,ChatGPT,GPTs,プロンプト,Python,自動化,TradingView,AI,チャットボット,業務効率化,WordPress,LP制作,スプレッドシート,GAS,Excel,CSV,データ整理,データ入力,AI活用,AI導入,生成AI,RAG,bot構築,スクリプト作成,ツール作成,業務改善"),
   MATCH_KEYWORDS: z.string().optional(),
   SKILLS: z.string().optional(),
   PREFER_BEGINNER_FRIENDLY: z
@@ -62,6 +62,10 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => (v ?? "true").toLowerCase() !== "false"),
+  ENABLE_COCONALA: z
+    .string()
+    .optional()
+    .transform((v) => (v ?? "true").toLowerCase() !== "false"),
 });
 
 export type AppConfig = {
@@ -80,6 +84,7 @@ export type AppConfig = {
   minClientJobCount: number;
   enableCrowdworks: boolean;
   enableLancers: boolean;
+  enableCoconala: boolean;
 };
 
 export function getConfig(): AppConfig {
@@ -108,5 +113,6 @@ export function getConfig(): AppConfig {
     minClientJobCount: parsed.MIN_CLIENT_JOB_COUNT,
     enableCrowdworks: parsed.ENABLE_CROWDWORKS,
     enableLancers: parsed.ENABLE_LANCERS,
+    enableCoconala: parsed.ENABLE_COCONALA,
   };
 }
