@@ -44,6 +44,14 @@ GitHub Actions (cron 08:00 JST)
                                                           Discord Webhook
 ```
 
+## 動作スクリーンショット
+
+毎朝 Discord に届く案件ダイジェスト。タイトル・予算・応募人数・締切余裕度・スコアと、**スコア理由（keyword 一致 / 予算 / 応募少 / 締切余裕 / 新着）**を 1 件 1 ブロックで配信します。
+
+![Discord 案件ダイジェスト](docs/screenshots/discord-notification.jpg)
+
+> 上記は CrowdWorks の新着 2 件をスコアリングして配信した実例。Bot 名「Captain Hook」は Discord Webhook の送信元設定で、本ボット自身のラベルです。
+
 ## セットアップ
 
 1. Node.js 20+ を用意
