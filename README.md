@@ -44,6 +44,54 @@ GitHub Actions (cron 08:00 JST)
                                                           Discord Webhook
 ```
 
+## 動作フロー（Mermaid）
+
+### パイプライン全体
+
+```mermaid
+flowchart LR
+    A[GitHub Actions cron<br/>08:00 JST] --> B[src/sources/crowdworks.ts]
+    A --> C[src/sources/lancers.ts]
+    A --> D[src/sources/coconala.ts]
+    B --> E[NormalizedJob 形式に正規化]
+    C --> E
+    D --> E
+    E --> F[dedupeJobs<br/>URL 基準で重複排除]
+    F --> G[scoreJobs<br/>9 軸加重スコアリング]
+    G --> H[降順ソート → Top N 抽出]
+    H --> I[formatDiscordSummary]
+    I --> J[postToDiscord<br/>Webhook]
+```
+
+### 9 軸スコアリング決定ロジック
+
+`src/match/scoring.ts` で以下 9 軸の加重合計でスコアを算出し、Top N に絞り込みます。
+
+```mermaid
+flowchart TD
+    Job[NormalizedJob] --> R1[keyword<br/>matchKeywords ヒット数]
+    Job --> R2[budget<br/>>= MIN_BUDGET_JPY?]
+    Job --> R3[beginnerFriendly<br/>初心者歓迎フラグ]
+    Job --> R4[lowCompetition<br/>応募数 ≤ 閾値?]
+    Job --> R5[clientRating<br/>>= MIN_CLIENT_RATING?]
+    Job --> R6[clientJobCount<br/>>= MIN_CLIENT_JOB_COUNT?]
+    Job --> R7[deadlineMargin<br/>締切余裕日数]
+    Job --> R8[recency<br/>新着 ≤ RECENCY_DAYS?]
+    Job --> R9[skillMatch<br/>SKILLS との重なり率]
+    R1 --> S[加重合計スコア<br/>SCORING_WEIGHTS]
+    R2 --> S
+    R3 --> S
+    R4 --> S
+    R5 --> S
+    R6 --> S
+    R7 --> S
+    R8 --> S
+    R9 --> S
+    S --> T[降順ソート → Top N]
+```
+
+各軸の重みは `SCORING_WEIGHTS` 環境変数で `keyword:50,budget:15,beginnerFriendly:30,...` のように上書き可能です（デフォルト値は `src/config.ts` の `DEFAULT_SCORING_WEIGHTS` 参照）。
+
 ## 動作スクリーンショット
 
 毎朝 Discord に届く案件ダイジェスト。タイトル・予算・応募人数・締切余裕度・スコアと、**スコア理由（keyword 一致 / 予算 / 応募少 / 締切余裕 / 新着）**を 1 件 1 ブロックで配信します。
@@ -102,6 +150,32 @@ GitHub Secrets に以下を設定してください:
 - `TOP_N`
 - `CROWDWORKS_API_URL` / `CROWDWORKS_API_TOKEN`
 - `LANCERS_API_URL` / `LANCERS_API_TOKEN`
+
+## 工夫点・技術的判断
+
+### 1. 9 軸加重スコアリング設計
+
+単純なキーワード一致だけでは「応募者多数で埋もれる案件」「クライアント評価が低い案件」「締切逼迫の案件」を取り除けないため、9 軸に分解して加重合計で総合判断する設計を採った。各軸の重みは環境変数で動的に変更でき、応募実績フィードバックに合わせて再調整可能。
+
+### 2. 複数ソース正規化（NormalizedJob）
+
+CrowdWorks（JSON API）/ Lancers（HTML スクレイピング）/ Coconala（HTML スクレイピング）はレスポンス形式・項目名・通貨単位が異なるため、`src/types.ts` の `NormalizedJob` 型で統一インターフェースを定義。新ソース追加時は `src/sources/` に 1 ファイル追加するだけで pipeline に組み込める。
+
+### 3. dedupeJobs（URL 基準の重複排除）
+
+同一案件が CrowdWorks と Lancers の両方に掲載されているケースが多いため、`src/sources/common.ts` で URL 基準の dedupe を実施。スコアが高いソース側のレコードを残す。
+
+### 4. Letta API でのメモリ・スコアリング判定
+
+静的なルールベースだけでは個人差（過去応募で返信があった案件タイプ）を反映できないため、Letta（Claude ベース）にメモリブロックを保持させ、過去の応募・採用結果から学習する動的スコアリングが拡張可能な設計にしている。
+
+### 5. GitHub Actions cron + Discord Webhook の最小構成
+
+自前サーバ・コンテナ・DB を一切持たず、GitHub Actions の無料枠（月 2,000 分）と Discord Webhook の無料機能だけで完結。月次運用コスト 0 円、設定変更は GitHub Secrets / Variables で完結。
+
+### 6. ソース別エラー隔離
+
+スクレイピング先のサイト側 HTML 変更で 1 ソースが 404/500 を返しても他ソースの収集は続行する設計（`Promise.allSettled` 相当）。1 ソース停止が全体停止を招かない。
 
 ## 成果・指標
 
