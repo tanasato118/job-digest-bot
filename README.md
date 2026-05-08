@@ -15,8 +15,8 @@
 
 - **複数ソース対応**: CrowdWorks / Lancers / Coconala の新着案件を共通フォーマットに正規化
 - **多軸スコアリング**: キーワード一致・初心者歓迎・最低単価・競合数・クライアント評価・案件件数・締切余裕・新着度・スキル一致
-- 応募人数・締切・単価・スコア理由付きで Discord に日次サマリー送信
-- GitHub Actions の cron で毎朝 08:00 JST に自動実行
+- 応募人数・締切・単価・スコア理由付きで Discord にサマリー送信
+- GitHub Actions の cron で **08:00 JST と 18:00 JST の 1 日 2 回** 自動実行
 - AI スコアリング（Letta API 連携）で「自分が刺さる案件」を上位 N 件に絞り込み
 
 ## 技術スタック
@@ -50,17 +50,16 @@ GitHub Actions (cron 08:00 JST)
 
 ```mermaid
 flowchart LR
-    A[GitHub Actions cron<br/>08:00 JST] --> B[src/sources/crowdworks.ts]
+    A[GitHub Actions cron<br/>08:00 JST + 18:00 JST<br/>1 日 2 回] --> B[src/sources/crowdworks.ts]
     A --> C[src/sources/lancers.ts]
     A --> D[src/sources/coconala.ts]
     B --> E[NormalizedJob 形式に正規化]
     C --> E
     D --> E
     E --> F[dedupeJobs<br/>URL 基準で重複排除]
-    F --> G[scoreJobs<br/>9 軸加重スコアリング]
-    G --> H[降順ソート → Top N 抽出]
-    H --> I[formatDiscordSummary]
-    I --> J[postToDiscord<br/>Webhook]
+    F --> G[scoreJobs<br/>9 軸加重スコアリング<br/>+ 内部で降順ソート]
+    G --> H[formatDiscordSummary<br/>Top N 抽出]
+    H --> I[postToDiscord<br/>Webhook]
 ```
 
 ### 9 軸スコアリング決定ロジック
@@ -139,7 +138,7 @@ npm run notify   # Discord 通知
 
 ## GitHub Actions 運用
 
-`.github/workflows/daily.yml` が毎日 `08:00 JST`（`23:00 UTC`）に実行されます。
+`.github/workflows/daily.yml` が毎日 **08:00 JST（23:00 UTC）と 18:00 JST（09:00 UTC）の 2 回** 実行されます。
 
 GitHub Secrets に以下を設定してください:
 
@@ -161,9 +160,9 @@ GitHub Secrets に以下を設定してください:
 
 CrowdWorks（JSON API）/ Lancers（HTML スクレイピング）/ Coconala（HTML スクレイピング）はレスポンス形式・項目名・通貨単位が異なるため、`src/types.ts` の `NormalizedJob` 型で統一インターフェースを定義。新ソース追加時は `src/sources/` に 1 ファイル追加するだけで pipeline に組み込める。
 
-### 3. dedupeJobs（URL 基準の重複排除）
+### 3. dedupeJobs（source+URL 複合キーの重複排除）
 
-同一案件が CrowdWorks と Lancers の両方に掲載されているケースが多いため、`src/sources/common.ts` で URL 基準の dedupe を実施。スコアが高いソース側のレコードを残す。
+同一ソース内で同一 URL の重複を排除するため、`src/sources/common.ts` で `${source}:${url}` の複合キーで dedupe を実施。異なるソース（CrowdWorks と Lancers 等）に同一 URL が存在する場合は両方残す（ソース別のスコアリング材料を確保するため）。
 
 ### 4. Letta API でのメモリ・スコアリング判定
 
